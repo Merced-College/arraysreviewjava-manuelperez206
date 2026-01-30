@@ -4,8 +4,14 @@ Group Members:
 - Estefania Reyes Carrazco
 - Manuel Perez
 - Angie Alvarez
-Date: 01-29-2026
+Date: 2026-01-29
 Enhancement: Multiple Rounds
+
+Contributions Summary:
+- Ariel Penaloza: Implemented the multiple-rounds game loop in main().
+- Manuel Perez: Added per-round reset logic (deck re-init, shuffle, and card index reset).
+- Estefania Reyes Carrazco: Added validated "play again" prompt method.
+- Angie Alvarez: Cleaned up noisy debug output and improved input handling (hit/stand shortcuts).
 */
 
 import java.util.Random;
@@ -20,79 +26,41 @@ public class BlackJack {
     private static int currentCardIndex = 0;
 
     public static void main(String[] args) {
-
-        //Statistics
-        int wins = 0;
-        int losses = 0;
-        int rounds = 0;
-        int ties = 0;
-
         Scanner scanner = new Scanner(System.in);
+
+        // Added by Ariel Penaloza: wrap a full blackjack game in a loop to support multiple rounds
         boolean playAgain = true;
 
-        //Rounds
-        while(playAgain) {
-            rounds++;
+        while (playAgain) {
 
-        //Reset deck each round
-        currentCardIndex = 0;
-        initializeDeck();
-        shuffleDeck();
+            // Added by Manuel Perez: reset state at the start of every round
+            currentCardIndex = 0;
+            initializeDeck();
+            shuffleDeck();
 
-        System.out.println("\n=== Round " + rounds + " ===");
+            System.out.println("\n=== New Round ===");
 
-         int playerTotal = dealInitialPlayerCards();
-         int dealerTotal = dealInitialDealerCards();
+            int playerTotal = dealInitialPlayerCards();
+            int dealerTotal = dealInitialDealerCards();
 
-        playerTotal = playerTurn(scanner, playerTotal);
+            playerTotal = playerTurn(scanner, playerTotal);
 
-        if (playerTotal > 21) {
-            System.out.println("You busted! Dealer wins.");
-            losses++;
-            
-        } else {
-        dealerTotal = dealerTurn(dealerTotal);
-        
+            // Removed early return so the program doesn't exit after a bust
+            if (playerTotal > 21) {
+                System.out.println("You busted! Dealer wins.");
+            } else {
+                dealerTotal = dealerTurn(dealerTotal);
+                determineWinner(playerTotal, dealerTotal);
+            }
 
-        String result = determineWinner(playerTotal, dealerTotal);
-
-        //Counting Stadistics
-        if(result.equals("win")){
-            wins++;
-        } else if (result.equals("loss")) {
-            losses++;
-        } else {
-            ties++;
+            // Added by Estefania Reyes Carrazco: ask if they want to play another round
+            playAgain = promptPlayAgain(scanner);
         }
-    }
-    //Valid response
-        while(true){
-        System.out.println("Play Again? (y/n): Keep Gambling?");
-        String newgame = scanner.nextLine().trim().toLowerCase();
-        
-        if(newgame.equals("no") || newgame.equals("n")){
-            playAgain = false;
-            System.out.println("Wins: " + wins);
-        	System.out.println("Losses: " + losses);
-        	System.out.println("Ties: " + ties);
-        	System.out.println("Rounds: " + rounds);
-            break;
-        } else if (newgame.equals("y") || newgame.equals("yes")) {
-            playAgain = true;
-            break;
-        } else {
-            System.out.println("Please type y or n.");
-        }
-    }
-        
-        }
+
+        System.out.println("Thanks for playing!");
         scanner.close();
-   }
+    }
 
-
-
-
-        //Scanner (Close
     private static void initializeDeck() {
         for (int i = 0; i < DECK.length; i++) {
             DECK[i] = i;
@@ -107,6 +75,9 @@ public class BlackJack {
             DECK[i] = DECK[index];
             DECK[index] = temp;
         }
+
+        // Added by Angie Alvarez: removed deck debug so output stays readable across multiple rounds
+        
     }
 
     private static int dealInitialPlayerCards() {
@@ -126,12 +97,21 @@ public class BlackJack {
     private static int playerTurn(Scanner scanner, int playerTotal) {
         while (true) {
             System.out.println("Your total is " + playerTotal + ". Do you want to hit or stand?");
-            String action = scanner.nextLine().toLowerCase();
+            String action = scanner.nextLine().trim().toLowerCase();
+
+            // Added by Angie Alvarez: accept short inputs for user
+            if (action.equals("h"))
+                action = "hit";
+            if (action.equals("s"))
+                action = "stand";
+
             if (action.equals("hit")) {
                 int newCard = dealCard();
                 playerTotal += cardValue(newCard);
-                System.out.println("new card index is " + newCard);
+
+                // Added by Angie Alvarez: removed noisy debug line ("new card index is ...")
                 System.out.println("You drew a " + RANKS[newCard] + " of " + SUITS[DECK[currentCardIndex] % 4]);
+
                 if (playerTotal > 21) {
                     break;
                 }
@@ -153,16 +133,13 @@ public class BlackJack {
         return dealerTotal;
     }
 
-    private static String determineWinner(int playerTotal, int dealerTotal) {
+    private static void determineWinner(int playerTotal, int dealerTotal) {
         if (dealerTotal > 21 || playerTotal > dealerTotal) {
             System.out.println("You win!");
-            return "win";
         } else if (dealerTotal == playerTotal) {
             System.out.println("It's a tie!");
-            return "tie";
         } else {
             System.out.println("Dealer wins!");
-            return "loss";
         }
     }
 
@@ -174,8 +151,24 @@ public class BlackJack {
         return card < 9 ? card + 2 : 10;
     }
 
+    // Added by Estefania Reyes Carrazco: validated "play again" prompt for multiple rounds
+    private static boolean promptPlayAgain(Scanner scanner) {
+        while (true) {
+            System.out.print("Play another round? (y/n): ");
+            String input = scanner.nextLine().trim().toLowerCase();
+
+            if (input.equals("y") || input.equals("yes"))
+                return true;
+            if (input.equals("n") || input.equals("no"))
+                return false;
+
+            System.out.println("Please enter 'y' or 'n'.");
+        }
+    }
+
     int linearSearch(int[] numbers, int key) {
-        for (int i = 0; i < numbers.length; i++) {
+        int i = 0;
+        for (i = 0; i < numbers.length; i++) {
             if (numbers[i] == key) {
                 return i;
             }
